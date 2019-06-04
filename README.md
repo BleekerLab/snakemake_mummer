@@ -1,6 +1,3 @@
-# snakemake_mummer
-A Snakemake pipeline to align a set of fasta sequences (query) to another (subject) using MUMMER4
-
 # Snakemake pipeline for genome to genome alignment using MUMMER
 MUMMER4
 One Paragraph of project description goes here
