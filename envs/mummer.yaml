@@ -1,0 +1,4 @@
+channels:
+  - bioconda
+dependencies:
+  - mummer4=4.0.0beta2
