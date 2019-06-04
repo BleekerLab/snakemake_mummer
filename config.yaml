@@ -1,5 +1,5 @@
 tempdir: scratch/     # files will be deleted upon pipeline completion
 resultdir: results/   # output files that you want to keep
 
-queries_dir: queries/ # fasta files that you want to align (e.g. scaffolds)
-refs_dir: refs/       # fasta files that you want to use as references (e.g. chromosomes)
+queries_dir: test/queries/ # fasta files that you want to align (e.g. scaffolds)
+refs_dir: test/refs/       # fasta files that you want to use as references (e.g. chromosomes)

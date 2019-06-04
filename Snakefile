@@ -120,7 +120,7 @@ rule calculate_alignment_percentage:
         input_directory = TEMP_DIR + "coords/",
         output_directory = RESULT_DIR + "percentages/"
     shell:
-        "python ../scripts/calculate_aligned_perc_calc.py "
+        "python scripts/calculate_aligned_perc_calc.py "
         "-referenceName {params.prefix} "
         "-inDir {params.input_directory} "
         "-deltaFile {input.delta} "
