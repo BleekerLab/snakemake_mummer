@@ -107,7 +107,8 @@ rule sort_coords:
 
 rule calculate_alignment_percentage:
     input:
-        coords = TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords"
+        coords = lambda wildcards: glob(TEMP_DIR + "coords/" + "{wildcards.query}_vs_{wildcards.ref}.sorted.coords")
+#        coords = TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords"
     output:
         RESULT_DIR + "{query}.txt"
     message:
