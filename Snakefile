@@ -107,24 +107,27 @@ rule sort_coords:
 
 rule calculate_alignment_percentage:
     input:
-        delta = TEMP_DIR + "delta/{query}_vs_{ref}.delta",
         coords = TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords"
     output:
-        RESULT_DIR + "{query}_vs_{ref}.txt"
+        RESULT_DIR + "{query}.txt"
     message:
         "calculating the percentage of aligned bases for {input}"
     #conda:
     #    "envs/calculate.yaml"
-    params:
-        prefix = "{query}_vs_{ref}",
-        input_directory = TEMP_DIR + "coords/",
-        output_directory = RESULT_DIR + "percentages/"
     shell:
-        "python scripts/calculate_aligned_perc_calc.py "
-        "-referenceName {params.prefix} "
-        "-inDir {params.input_directory} "
-        "-deltaFile {input.delta} "
-        "-outDir {params.output_directory} "
-        "-outFile {params.prefix}"
+        "Rscript scripts/aligned_perc_calc.r"
+        "--filename {input.coords} "
+
+rule create_results_matrix:
+    input:
+        percentages = RESULT_DIR + "{query}.txt"
+    output:
+        RESULT_DIR + "results.tsv"
+    message:
+        "creating final results.tsv file"
+    shell:
+        "Rscript scripts/merge2matrix.r"
+        "--filename {input.percentages}"
+        "--out results.tsv"
 
 # rule filter_alignments:

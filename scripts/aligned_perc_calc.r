@@ -1,0 +1,34 @@
+# Wrapper for the aligned_perc_calc_functions.r script
+
+.libPaths("/home/wotten/R/x86_64-pc-linux-gnu-library/3.4")
+
+# Load packages
+suppressPackageStartupMessages(library(Biostrings))
+suppressPackageStartupMessages(library(argparse))
+#library(tidyr)
+
+
+parser <- ArgumentParser(description='Calculate percentage of aligned bases')
+parser$add_argument("-f", "--filename", metavar = "character", type = "character", nargs="+", help = "list of input files")
+parser$add_argument("-l", "--length_threshold", metavar = "integer", type = "integer", default =  1000, help = "threshold value for length filter [default]")
+parser$add_argument("-i", "--identity_threshold", metavar = "integer", type = "integer", default = 90.0, help = "threshold value for identity filter [default]")
+
+opt <- parser$parse_args()
+
+# Load functions
+source("aligned_perc_calc_functions.r")
+
+mode <- 1 # mode 1 is wrapper mode, 0 is standalone mode
+# remake of aligned_perc_calc.py
+oldtime <- Sys.time() # test speed of script
+coords_files <- opt$filename
+for (i in coords_files){
+  filtered_data <- get_filtered_data(filename = i,
+                                     length_threshold = opt$length_threshold,
+                                     identity_threshold = opt$identity_threshold,
+                                     mode = mode) # filter the data
+  
+  merged <- merge_data(filename = gsub(".coords",".tsv",gsub("sorted","Temp/filtered",i)),mode = mode, data = filtered_data) # remove redundant sequences and merge overlapping sequences
+  get_aligned_perc(filename = gsub(".coords",".NR.tsv",gsub("sorted","Temp/filtered",i)),mode = mode, data = merged) # calculate the percentage of aligned bases
+}
+print(Sys.time()-oldtime)
