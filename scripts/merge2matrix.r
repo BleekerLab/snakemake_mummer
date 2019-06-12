@@ -24,7 +24,7 @@ merge2matrix <- function(data = opt$filename, outfile = opt$out){
   aligned_perc_matrix <- aligned_perc_matrix[,-1] # remove column containing names
   aligned_perc_matrix <- aligned_perc_matrix[,order(as.numeric(colnames(aligned_perc_matrix)))] # order the columns
   write.table(aligned_perc_matrix,outfile,sep = "\t") # write as .tsv for use in future scripts
-  return(aligned_perc_matrix)
+  #return(aligned_perc_matrix)
 }
 
 merge2matrix(data = opt$filename, outfile = opt$out)
