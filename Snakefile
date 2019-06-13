@@ -103,31 +103,31 @@ rule sort_coords:
     message:
         "sorting {input} file by coordinates"
     shell:
-        "sort  -n -k1 {input} > {output}"
+        "sort  -n -k3 {input} > {output}"
 
 rule calculate_alignment_percentage:
     input:
-        coords = TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords"
+        TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords"
     output:
-        RESULT_DIR + "{query}.txt"
+        TEMP_DIR + "{query}.txt"
     message:
         "calculating the percentage of aligned bases for {input}"
     #conda:
     #    "envs/calculate.yaml"
     shell:
         "Rscript scripts/aligned_perc_calc.r"
-        "--filename {input.coords} "
+        "--filename {input} "
 
 rule create_results_matrix:
     input:
-        percentages = RESULT_DIR + "{query}.txt"
+        TEMP_DIR + "{query}.txt"
     output:
         RESULT_DIR + "results.tsv"
     message:
         "creating final results.tsv file"
     shell:
         "Rscript scripts/merge2matrix.r"
-        "--filename {input.percentages}"
+        "--filename {input}"
         "--out results.tsv"
 
 # rule filter_alignments:

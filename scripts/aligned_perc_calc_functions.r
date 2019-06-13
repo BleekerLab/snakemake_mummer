@@ -19,7 +19,7 @@ get_filtered_data <- function(filename = "sortedSuper-Scaffold_1000002-H12.coord
   colnames(data) <- tolower(c("Start_ref","End_ref","Start_query","End_query","Length_1","Length_2","%_Identity","Ref_name","Query_name"))
   
   # filter
-  filtered_data <- data[-which(data$length_1 < length_threshold | data$`%_identity` < identity_threshold),]
+  filtered_data <- data[-which(data$length_2 < length_threshold | data$`%_identity` < identity_threshold),]
   rownames(filtered_data) <- 1:nrow(filtered_data)
   if (mode == 0){
     write.table(filtered_data, paste0("Temp/filtered",filtered_data$ref_name[1],"-H",filtered_data$query_name[1],".tsv"), row.names = F, sep = "\t")
@@ -34,7 +34,7 @@ merge_data <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.tsv",
   if (mode == 0){
     data <- read.table(filename, sep = "\t", header = T)
   }
-  tbmerged <- data[,c(8,9,1,2)] # get just the relevant data
+  tbmerged <- data[,c(8,9,3,4)] # get just the relevant data
   tbmerged[,1] <- as.character(tbmerged[,1])
   
   while (T){
@@ -58,7 +58,7 @@ merge_data <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.tsv",
     if(nrow(tbmerged)==nrow(merged)){break}
     tbmerged <- merged
   }
-  colnames(merged) <- c("ref_name","query_name","ref_start","ref_end")
+  colnames(merged) <- c("ref_name","query_name","query_start","query_end")
   if (mode == 0){
     write.table(merged, gsub(".tsv",".NR.tsv",filename), row.names = F, sep = "\t")
   } else {
@@ -72,10 +72,9 @@ get_aligned_perc <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12
     data <- read.table(filename, sep = "\t", header = T, stringsAsFactors = F)
   }
   data <- cbind(data,length = (data[,4]-data[,3])) # calculate length
-  SS_seq <- readDNAStringSet(paste0(data$ref_name[1],".fasta")) 
+  SS_seq <- readDNAStringSet("test/queries/",paste0(data$query_name[1],".fasta")) 
   aligned_perc <- cbind(ref_name = data$ref_name[1],
                         query_name = data$query_name[1],
                         aligned_perc = sum(data$length)/nchar(SS_seq)*100) # length divided by total SS length *100 is % aligned bases
-  if (file.exists(paste0(aligned_perc[,1],".txt"))){cntmp <- FALSE} else {cntmp <- TRUE}
-  write.table(aligned_perc, paste0(aligned_perc[,1],".txt"), append = T, sep = "\t", row.names = FALSE, col.names = cntmp)
+  write.table(aligned_perc, paste0(aligned_perc[,2],"_vs_",aligned_perc[,1],".txt"), sep = "\t", row.names = FALSE)
 }
