@@ -24,6 +24,9 @@ RESULT_DIR  = config["resultdir"]
 QUERIES_DIR = config["queries_dir"]
 REFS_DIR = config["refs_dir"]
 
+LENGTH_THRESHOLD = config["length_threshold"]
+IDENTITY_THRESHOLD = config["identity_threshold"]
+
 ###########
 # Wildcards
 ###########
@@ -56,7 +59,8 @@ REFS = get_list_of_fasta_file_names(REFS_DIR)
 ##################
 rule all:
     input:
-        expand(RESULT_DIR + "{query}_vs_{ref}.txt",query=QUERIES,ref=REFS)
+#        expand(RESULT_DIR + "{query}_vs_{ref}.sorted.coords",query=QUERIES,ref=REFS),
+        RESULT_DIR + "results.tsv"
     message:"all done"
 
 
@@ -69,7 +73,7 @@ rule nucmer:
         query = QUERIES_DIR + "{query}.fasta",
         ref = REFS_DIR + "{ref}.fasta"
     output:
-        TEMP_DIR + "delta/{query}_vs_{ref}.delta"
+        temp(TEMP_DIR + "delta/{query}_vs_{ref}.delta")
     message:
         "Starting nucmer alignment with {wildcards.query} on {wildcards.ref}"
     conda:
@@ -80,7 +84,7 @@ rule nucmer:
         ref = "{ref}",
         prefix = TEMP_DIR + "delta/{query}_vs_{ref}"
     shell:
-        "nucmer --threads={threads} --prefix={params.prefix} {input.query} {input.ref}"
+        "nucmer --threads={threads} --prefix={params.prefix} {input.ref} {input.query}"
 
 
 rule delta_to_coords:
@@ -99,36 +103,45 @@ rule sort_coords:
     input:
         TEMP_DIR + "coords/{query}_vs_{ref}.coords"
     output:
-        TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords"
+        RESULT_DIR + "coords/{query}_vs_{ref}.sorted.coords"
     message:
         "sorting {input} file by coordinates"
     shell:
-        "sort  -n -k3 {input} > {output}"
+        "sort  -n -k4 {input} > {output}"
 
 rule calculate_alignment_percentage:
     input:
-        coords = lambda wildcards: glob(TEMP_DIR + "coords/" + "{wildcards.query}_vs_{wildcards.ref}.sorted.coords")
-#        coords = TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords"
+#        lambda wildcards: [RESULT_DIR + "coords/{wildcards.query}_vs_{wildcards.ref}.sorted.coords"]
+        coords = RESULT_DIR + "coords/{query}_vs_{ref}.sorted.coords",
+        fasta = QUERIES_DIR + "{query}.fasta"
     output:
-        TEMP_DIR + "{query}.txt"
+        temp(TEMP_DIR + "{query}_vs_{ref}.txt")
+    params:
+        length_threshold = LENGTH_THRESHOLD,
+        identity_threshold = IDENTITY_THRESHOLD
     message:
         "calculating the percentage of aligned bases for {input}"
     #conda:
     #    "envs/calculate.yaml"
     shell:
-        "Rscript scripts/aligned_perc_calc.r"
-        "--filename {input} "
+        "Rscript scripts/aligned_perc_calc.r "
+        "--filename {input.coords} "
+        "--fasta {input.fasta} "
+        "--out {output} "
+        "--length_threshold {params.length_threshold} "
+        "--identity_threshold {params.identity_threshold} "
 
 rule create_results_matrix:
     input:
-        TEMP_DIR + "{query}.txt"
+        expand(TEMP_DIR + "{query}_vs_{ref}.txt", query=QUERIES, ref=REFS)
     output:
         RESULT_DIR + "results.tsv"
     message:
         "creating final results.tsv file"
     shell:
-        "Rscript scripts/merge2matrix.r"
-        "--filename {input}"
-        "--out results.tsv"
+        "Rscript "
+        "scripts/merge2matrix.r "
+        "--filename {input} "
+        "--out {output} "
 
 # rule filter_alignments:

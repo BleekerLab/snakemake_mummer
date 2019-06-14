@@ -10,13 +10,15 @@ suppressPackageStartupMessages(library(argparse))
 
 parser <- ArgumentParser(description='Calculate percentage of aligned bases')
 parser$add_argument("-f", "--filename", metavar = "character", type = "character", nargs="+", help = "list of input files")
+parser$add_argument("--fasta", metavar = "character", type = "character", nargs="+", help = "list of query fasta files")
+parser$add_argument("--out", metavar = "character", type = "character", nargs="+", help = "list of output files")
 parser$add_argument("-l", "--length_threshold", metavar = "integer", type = "integer", default =  1000, help = "threshold value for length filter [default]")
-parser$add_argument("-i", "--identity_threshold", metavar = "integer", type = "integer", default = 90.0, help = "threshold value for identity filter [default]")
+parser$add_argument("-i", "--identity_threshold", metavar = "double", type = "double", default = 90.0, help = "threshold value for identity filter [default]")
 
 opt <- parser$parse_args()
 
 # Load functions
-source("aligned_perc_calc_functions.r")
+source("scripts/aligned_perc_calc_functions.r")
 
 mode <- 1 # mode 1 is wrapper mode, 0 is standalone mode
 # remake of aligned_perc_calc.py
@@ -29,6 +31,6 @@ for (i in coords_files){
                                      mode = mode) # filter the data
   
   merged <- merge_data(filename = gsub(".coords",".tsv",gsub("sorted","Temp/filtered",i)),mode = mode, data = filtered_data) # remove redundant sequences and merge overlapping sequences
-  get_aligned_perc(filename = gsub(".coords",".NR.tsv",gsub("sorted","Temp/filtered",i)),mode = mode, data = merged) # calculate the percentage of aligned bases
+  get_aligned_perc(filename = gsub(".coords",".NR.tsv",gsub("sorted","Temp/filtered",i)),mode = mode, data = merged, fastafile = opt$fasta, out = opt$out) # calculate the percentage of aligned bases
 }
-print(Sys.time()-oldtime)
+#print(Sys.time()-oldtime)

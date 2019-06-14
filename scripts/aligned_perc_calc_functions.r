@@ -13,13 +13,23 @@ get_filtered_data <- function(filename = "sortedSuper-Scaffold_1000002-H12.coord
   if (!is.numeric(identity_threshold)){stop("identity_threshold needs to be a number")}
   if (identity_threshold>100 | identity_threshold<0){stop("identity_threshold needs to be a value between 0 and 100")}
   
+#  print(filename)
   # Read and fix
   data <- read.table(filename, sep = "", skip = 5)
   data <- data[,-which(data[1,]=="|")]
   colnames(data) <- tolower(c("Start_ref","End_ref","Start_query","End_query","Length_1","Length_2","%_Identity","Ref_name","Query_name"))
-  
+
+  # need to make start < end
+  data[which(data$start_query > data$end_query),c(3,4)] <- data[which(data$start_query > data$end_query),c(4,3)]
+
   # filter
-  filtered_data <- data[-which(data$length_2 < length_threshold | data$`%_identity` < identity_threshold),]
+  if (all(data$length_2 < length_threshold | data$`%_identity` < identity_threshold)){
+    stop("no alignments passed filtering, choose different filtering parameters")
+  } else if (any(data$length_2 < length_threshold | data$`%identity` < identity_threshold)){
+    filtered_data <- data[-which(data$length_2 < length_threshold | data$`%_identity` < identity_threshold),]
+  } else {
+    filtered_data <- data
+  }
   rownames(filtered_data) <- 1:nrow(filtered_data)
   if (mode == 0){
     write.table(filtered_data, paste0("Temp/filtered",filtered_data$ref_name[1],"-H",filtered_data$query_name[1],".tsv"), row.names = F, sep = "\t")
@@ -35,6 +45,7 @@ merge_data <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.tsv",
     data <- read.table(filename, sep = "\t", header = T)
   }
   tbmerged <- data[,c(8,9,3,4)] # get just the relevant data
+  tbmerged[,2] <- as.character(tbmerged[,2])
   tbmerged[,1] <- as.character(tbmerged[,1])
   
   while (T){
@@ -67,14 +78,16 @@ merge_data <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.tsv",
 }
 
 # calculate the percentage of aligned bases
-get_aligned_perc <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.NR.tsv", mode = 0, data = merged){
+get_aligned_perc <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.NR.tsv", fastafile = "Super-Scaffold_1000002.fasta", mode = 0, data = merged, out = opt$out){
   if (mode == 0){
     data <- read.table(filename, sep = "\t", header = T, stringsAsFactors = F)
   }
   data <- cbind(data,length = (data[,4]-data[,3])) # calculate length
-  SS_seq <- readDNAStringSet("test/queries/",paste0(data$query_name[1],".fasta")) 
+#  print(data)
+#  print(opt$filename)
+  SS_seq <- readDNAStringSet(fastafile) 
   aligned_perc <- cbind(ref_name = data$ref_name[1],
                         query_name = data$query_name[1],
                         aligned_perc = sum(data$length)/nchar(SS_seq)*100) # length divided by total SS length *100 is % aligned bases
-  write.table(aligned_perc, paste0(aligned_perc[,2],"_vs_",aligned_perc[,1],".txt"), sep = "\t", row.names = FALSE)
+  write.table(aligned_perc, out, sep = "\t", row.names = FALSE)
 }
