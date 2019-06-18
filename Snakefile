@@ -73,29 +73,30 @@ rule nucmer:
         query = QUERIES_DIR + "{query}.fasta",
         ref = REFS_DIR + "{ref}.fasta"
     output:
-        temp(TEMP_DIR + "delta/{query}_vs_{ref}.delta")
+        RESULT_DIR + "delta/{query}_vs_{ref}.delta"
     message:
         "Starting nucmer alignment with {wildcards.query} on {wildcards.ref}"
     conda:
         "envs/mummer.yaml"
-    threads: 20
+#    threads: 20
     params:
         query = "{query}",
         ref = "{ref}",
-        prefix = TEMP_DIR + "delta/{query}_vs_{ref}"
+        prefix = RESULT_DIR + "delta/{query}_vs_{ref}"
     shell:
         "nucmer --threads={threads} --prefix={params.prefix} {input.ref} {input.query}"
 
 
 rule delta_to_coords:
     input:
-        TEMP_DIR + "delta/{query}_vs_{ref}.delta"
+        RESULT_DIR + "delta/{query}_vs_{ref}.delta"
     output:
         temp(TEMP_DIR + "coords/{query}_vs_{ref}.coords")
     message:
         "converting {input} format to the coords format"
     conda:
         "envs/mummer.yaml"
+#    threads: 20
     shell:
         "show-coords -r {input} > {output}"
 
@@ -103,16 +104,17 @@ rule sort_coords:
     input:
         TEMP_DIR + "coords/{query}_vs_{ref}.coords"
     output:
-        RESULT_DIR + "coords/{query}_vs_{ref}.sorted.coords"
+        temp(TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords")
     message:
         "sorting {input} file by coordinates"
+#    threads: 20
     shell:
         "sort  -n -k4 {input} > {output}"
 
 rule calculate_alignment_percentage:
     input:
 #        lambda wildcards: [RESULT_DIR + "coords/{wildcards.query}_vs_{wildcards.ref}.sorted.coords"]
-        coords = RESULT_DIR + "coords/{query}_vs_{ref}.sorted.coords",
+        coords = TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords",
         fasta = QUERIES_DIR + "{query}.fasta"
     output:
         temp(TEMP_DIR + "{query}_vs_{ref}.txt")
@@ -123,6 +125,7 @@ rule calculate_alignment_percentage:
         "calculating the percentage of aligned bases for {input}"
     #conda:
     #    "envs/calculate.yaml"
+#    threads: 20
     shell:
         "Rscript scripts/aligned_perc_calc.r "
         "--filename {input.coords} "

@@ -1,6 +1,6 @@
 # Wrapper for the aligned_perc_calc_functions.r script
 
-.libPaths("/home/wotten/R/x86_64-pc-linux-gnu-library/3.4")
+#.libPaths("/home/wotten/R/x86_64-pc-linux-gnu-library/3.4")
 
 # Load packages
 suppressPackageStartupMessages(library(Biostrings))
