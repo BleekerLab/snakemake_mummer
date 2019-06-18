@@ -123,14 +123,8 @@ rule calculate_alignment_percentage:
         identity_threshold = IDENTITY_THRESHOLD
     message:
         "calculating the percentage of aligned bases for {input}"
-<<<<<<< HEAD
-    #conda:
-    #    "envs/calculate.yaml"
-#    threads: 20
-=======
     conda:
         "envs/percentage.yaml"
->>>>>>> f5baaf45833b22b927c64716525c89f317e377e4
     shell:
         "Rscript scripts/aligned_perc_calc.r "
         "--filename {input.coords} "
