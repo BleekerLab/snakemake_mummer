@@ -1,11 +1,8 @@
 # Wrapper for the aligned_perc_calc_functions.r script
 
-.libPaths("/home/wotten/R/x86_64-pc-linux-gnu-library/3.4")
-
 # Load packages
 suppressPackageStartupMessages(library(Biostrings))
 suppressPackageStartupMessages(library(argparse))
-#library(tidyr)
 
 
 parser <- ArgumentParser(description='Calculate percentage of aligned bases')
@@ -29,7 +26,7 @@ for (i in coords_files){
                                      length_threshold = opt$length_threshold,
                                      identity_threshold = opt$identity_threshold,
                                      mode = mode) # filter the data
-  
+
   merged <- merge_data(filename = gsub(".coords",".tsv",gsub("sorted","Temp/filtered",i)),mode = mode, data = filtered_data) # remove redundant sequences and merge overlapping sequences
   get_aligned_perc(filename = gsub(".coords",".NR.tsv",gsub("sorted","Temp/filtered",i)),mode = mode, data = merged, fastafile = opt$fasta, out = opt$out) # calculate the percentage of aligned bases
 }
