@@ -15,7 +15,7 @@ parser$add_argument("-i", "--identity_threshold", metavar = "double", type = "do
 opt <- parser$parse_args()
 
 # Load functions
-source("scripts/aligned_perc_calc_functions.R")
+source("scripts/aligned_perc_calc_functions.r")
 
 mode <- 1 # mode 1 is wrapper mode, 0 is standalone mode
 # remake of aligned_perc_calc.py
