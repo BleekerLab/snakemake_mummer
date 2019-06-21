@@ -104,7 +104,7 @@ rule sort_coords:
     input:
         TEMP_DIR + "coords/{query}_vs_{ref}.coords"
     output:
-        temp(TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords")
+        TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords"
     message:
         "sorting {input} file by coordinates"
 #    threads: 20
@@ -126,7 +126,7 @@ rule calculate_alignment_percentage:
     conda:
         "envs/percentage.yaml"
     shell:
-        "Rscript scripts/aligned_perc_calc.r "
+        "Rscript scripts/aligned_perc_calc.R "
         "--filename {input.coords} "
         "--fasta {input.fasta} "
         "--out {output} "
@@ -140,9 +140,11 @@ rule create_results_matrix:
         RESULT_DIR + "results.tsv"
     message:
         "creating final results.tsv file"
+    conda:
+        "envs/merge.yaml"
     shell:
         "Rscript "
-        "scripts/merge2matrix.r "
+        "scripts/merge2matrix.R "
         "--filename {input} "
         "--out {output} "
 
