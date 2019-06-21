@@ -6,3 +6,4 @@ refs_dir: test/refs/       # fasta files that you want to use as references (e.g
 
 length_threshold: 100     # minimum length of alignment
 identity_threshold: 85.0   # minimum identity score of alignment
+n_threshold: 10    # cut off for N filtering

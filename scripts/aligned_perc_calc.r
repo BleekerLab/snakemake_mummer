@@ -9,8 +9,10 @@ parser <- ArgumentParser(description='Calculate percentage of aligned bases')
 parser$add_argument("-f", "--filename", metavar = "character", type = "character", nargs="+", help = "list of input files")
 parser$add_argument("--fasta", metavar = "character", type = "character", nargs="+", help = "list of query fasta files")
 parser$add_argument("--out", metavar = "character", type = "character", nargs="+", help = "list of output files")
+parser$add_argument("-n", "--nfile", metavar = "character", type = "character", help = "file containing the N locations of the query")
 parser$add_argument("-l", "--length_threshold", metavar = "integer", type = "integer", default =  1000, help = "threshold value for length filter [default]")
 parser$add_argument("-i", "--identity_threshold", metavar = "double", type = "double", default = 90.0, help = "threshold value for identity filter [default]")
+
 
 opt <- parser$parse_args()
 
@@ -26,8 +28,8 @@ for (i in coords_files){
                                      length_threshold = opt$length_threshold,
                                      identity_threshold = opt$identity_threshold,
                                      mode = mode) # filter the data
-
-  merged <- merge_data(filename = gsub(".coords",".tsv",gsub("sorted","Temp/filtered",i)),mode = mode, data = filtered_data) # remove redundant sequences and merge overlapping sequences
-  get_aligned_perc(filename = gsub(".coords",".NR.tsv",gsub("sorted","Temp/filtered",i)),mode = mode, data = merged, fastafile = opt$fasta, out = opt$out) # calculate the percentage of aligned bases
+  N_filtered_data <- filter_N_entries(data = filtered_data, N_file = opt$nfile)
+  merged <- merge_data(filename = gsub(".coords",".tsv",gsub("sorted","Temp/filtered",i)),mode = mode, data = N_filtered_data) # remove redundant sequences and merge overlapping sequences
+  get_aligned_perc(filename = gsub(".coords",".NR.tsv",gsub("sorted","Temp/filtered",i)),mode = mode, data = merged, fastafile = opt$fasta, out = opt$out, N_file = opt$nfile) # calculate the percentage of aligned bases
 }
 #print(Sys.time()-oldtime)

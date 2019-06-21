@@ -26,6 +26,7 @@ REFS_DIR = config["refs_dir"]
 
 LENGTH_THRESHOLD = config["length_threshold"]
 IDENTITY_THRESHOLD = config["identity_threshold"]
+N_THRESHOLD = config["n_threshold"]
 
 ###########
 # Wildcards
@@ -86,6 +87,23 @@ rule nucmer:
     shell:
         "nucmer --threads={threads} --prefix={params.prefix} {input.ref} {input.query}"
 
+rule get_N_locations:
+    input:
+        QUERIES_DIR + "{query}.fasta"
+    output:
+        temp(TEMP_DIR + "query_N/{query}.txt")
+    params:
+        n_threshold = N_THRESHOLD
+    message:
+        "Starting N location acquirement for {wildcards.query}"
+    conda:
+        "envs/percentage.yaml"
+    shell:
+        "Rscript "
+        "scripts/get_N_locations.r "
+        "--fasta {input} "
+        "--out {output} "
+        "--n_threshold {params.n_threshold} "
 
 rule delta_to_coords:
     input:
@@ -115,7 +133,8 @@ rule calculate_alignment_percentage:
     input:
 #        lambda wildcards: [RESULT_DIR + "coords/{wildcards.query}_vs_{wildcards.ref}.sorted.coords"]
         coords = TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords",
-        fasta = QUERIES_DIR + "{query}.fasta"
+        fasta = QUERIES_DIR + "{query}.fasta",
+        nfile = TEMP_DIR + "query_N/{query}.txt"
     output:
         temp(TEMP_DIR + "{query}_vs_{ref}.txt")
     params:
@@ -130,6 +149,7 @@ rule calculate_alignment_percentage:
         "--filename {input.coords} "
         "--fasta {input.fasta} "
         "--out {output} "
+        "--nfile {input.nfile} "
         "--length_threshold {params.length_threshold} "
         "--identity_threshold {params.identity_threshold} "
 
