@@ -1,5 +1,9 @@
-tempdir: scratch/     # files will be deleted upon pipeline completion
+tempdir: scratch/    # files will be deleted upon pipeline completion
 resultdir: results/   # output files that you want to keep
 
 queries_dir: test/queries/ # fasta files that you want to align (e.g. scaffolds)
 refs_dir: test/refs/       # fasta files that you want to use as references (e.g. chromosomes)
+
+length_threshold: 100     # minimum length of alignment
+identity_threshold: 85.0   # minimum identity score of alignment
+n_threshold: 10    # cut off for N filtering

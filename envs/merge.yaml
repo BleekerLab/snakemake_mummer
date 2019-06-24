@@ -1,0 +1,6 @@
+channels:
+  - r
+dependencies:
+  - r-tidyr=0.8.1
+  - r-argparse
+

@@ -24,6 +24,10 @@ RESULT_DIR  = config["resultdir"]
 QUERIES_DIR = config["queries_dir"]
 REFS_DIR = config["refs_dir"]
 
+LENGTH_THRESHOLD = config["length_threshold"]
+IDENTITY_THRESHOLD = config["identity_threshold"]
+N_THRESHOLD = config["n_threshold"]
+
 ###########
 # Wildcards
 ###########
@@ -56,7 +60,8 @@ REFS = get_list_of_fasta_file_names(REFS_DIR)
 ##################
 rule all:
     input:
-        expand(RESULT_DIR + "{query}_vs_{ref}.txt",query=QUERIES,ref=REFS)
+#        expand(RESULT_DIR + "{query}_vs_{ref}.sorted.coords",query=QUERIES,ref=REFS),
+        RESULT_DIR + "results.tsv"
     message:"all done"
 
 
@@ -69,29 +74,47 @@ rule nucmer:
         query = QUERIES_DIR + "{query}.fasta",
         ref = REFS_DIR + "{ref}.fasta"
     output:
-        TEMP_DIR + "delta/{query}_vs_{ref}.delta"
+        RESULT_DIR + "delta/{query}_vs_{ref}.delta"
     message:
         "Starting nucmer alignment with {wildcards.query} on {wildcards.ref}"
     conda:
         "envs/mummer.yaml"
-    threads: 20
+#    threads: 20
     params:
         query = "{query}",
         ref = "{ref}",
-        prefix = TEMP_DIR + "delta/{query}_vs_{ref}"
+        prefix = RESULT_DIR + "delta/{query}_vs_{ref}"
     shell:
-        "nucmer --threads={threads} --prefix={params.prefix} {input.query} {input.ref}"
+        "nucmer --threads={threads} --prefix={params.prefix} {input.ref} {input.query}"
 
+rule get_N_locations:
+    input:
+        QUERIES_DIR + "{query}.fasta"
+    output:
+        temp(TEMP_DIR + "query_N/{query}.txt")
+    params:
+        n_threshold = N_THRESHOLD
+    message:
+        "Starting N location acquirement for {wildcards.query}"
+    conda:
+        "envs/percentage.yaml"
+    shell:
+        "Rscript "
+        "scripts/get_N_locations.r "
+        "--fasta {input} "
+        "--out {output} "
+        "--n_threshold {params.n_threshold} "
 
 rule delta_to_coords:
     input:
-        TEMP_DIR + "delta/{query}_vs_{ref}.delta"
+        RESULT_DIR + "delta/{query}_vs_{ref}.delta"
     output:
         temp(TEMP_DIR + "coords/{query}_vs_{ref}.coords")
     message:
         "converting {input} format to the coords format"
     conda:
         "envs/mummer.yaml"
+#    threads: 20
     shell:
         "show-coords -r {input} > {output}"
 
@@ -99,32 +122,50 @@ rule sort_coords:
     input:
         TEMP_DIR + "coords/{query}_vs_{ref}.coords"
     output:
-        TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords"
+        temp(TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords")
     message:
         "sorting {input} file by coordinates"
+#    threads: 20
     shell:
-        "sort  -n -k1 {input} > {output}"
+        "sort  -n -k4 {input} > {output}"
 
 rule calculate_alignment_percentage:
     input:
-        delta = TEMP_DIR + "delta/{query}_vs_{ref}.delta",
-        coords = TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords"
+#        lambda wildcards: [RESULT_DIR + "coords/{wildcards.query}_vs_{wildcards.ref}.sorted.coords"]
+        coords = TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords",
+        fasta = QUERIES_DIR + "{query}.fasta",
+        nfile = TEMP_DIR + "query_N/{query}.txt"
     output:
-        RESULT_DIR + "{query}_vs_{ref}.txt"
+        temp(TEMP_DIR + "{query}_vs_{ref}.txt")
+    params:
+        length_threshold = LENGTH_THRESHOLD,
+        identity_threshold = IDENTITY_THRESHOLD
     message:
         "calculating the percentage of aligned bases for {input}"
-    #conda:
-    #    "envs/calculate.yaml"
-    params:
-        prefix = "{query}_vs_{ref}",
-        input_directory = TEMP_DIR + "coords/",
-        output_directory = RESULT_DIR + "percentages/"
+    conda:
+        "envs/percentage.yaml"
     shell:
-        "python scripts/calculate_aligned_perc_calc.py "
-        "-referenceName {params.prefix} "
-        "-inDir {params.input_directory} "
-        "-deltaFile {input.delta} "
-        "-outDir {params.output_directory} "
-        "-outFile {params.prefix}"
+        "Rscript scripts/aligned_perc_calc.r "
+        "--filename {input.coords} "
+        "--fasta {input.fasta} "
+        "--out {output} "
+        "--nfile {input.nfile} "
+        "--length_threshold {params.length_threshold} "
+        "--identity_threshold {params.identity_threshold} "
+
+rule create_results_matrix:
+    input:
+        expand(TEMP_DIR + "{query}_vs_{ref}.txt", query=QUERIES, ref=REFS)
+    output:
+        RESULT_DIR + "results.tsv"
+    message:
+        "creating final results.tsv file"
+    conda:
+        "envs/merge.yaml"
+    shell:
+        "Rscript "
+        "scripts/merge2matrix.r "
+        "--filename {input} "
+        "--out {output} "
 
 # rule filter_alignments:
