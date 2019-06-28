@@ -50,7 +50,7 @@ get_N_locations <- function(fastafile = opt$fasta, N_threshold = opt$n_threshold
     if (N_threshold>0){
       longasslist <- longasslist[-which(longasslist[,3]<N_threshold),]
     }
-    if (!is.data.frame(longasslist)){
+    if (length(dim(longasslist))!=2){
       longasslist <- cbind(start = longasslist[1], end = longasslist[2], length = longasslist[3])
     }
   }

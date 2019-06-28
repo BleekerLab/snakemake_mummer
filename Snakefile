@@ -26,7 +26,8 @@ REFS_DIR = config["refs_dir"]
 
 LENGTH_THRESHOLD = config["length_threshold"]
 IDENTITY_THRESHOLD = config["identity_threshold"]
-N_THRESHOLD = config["n_threshold"]
+#N_THRESHOLD_ABS = config["n_threshold_abs"]
+N_THRESHOLD_PERC = config["n_threshold_perc"]
 
 ###########
 # Wildcards
@@ -92,8 +93,8 @@ rule get_N_locations:
         QUERIES_DIR + "{query}.fasta"
     output:
         temp(TEMP_DIR + "query_N/{query}.txt")
-    params:
-        n_threshold = N_THRESHOLD
+#    params:
+#        n_threshold = N_THRESHOLD
     message:
         "Starting N location acquirement for {wildcards.query}"
     conda:
@@ -103,7 +104,7 @@ rule get_N_locations:
         "scripts/get_N_locations.r "
         "--fasta {input} "
         "--out {output} "
-        "--n_threshold {params.n_threshold} "
+#        "--n_threshold {params.n_threshold} "
 
 rule delta_to_coords:
     input:
@@ -139,7 +140,9 @@ rule calculate_alignment_percentage:
         temp(TEMP_DIR + "{query}_vs_{ref}.txt")
     params:
         length_threshold = LENGTH_THRESHOLD,
-        identity_threshold = IDENTITY_THRESHOLD
+        identity_threshold = IDENTITY_THRESHOLD,
+#        n_threshold_abs = N_THRESHOLD_ABS,
+        n_threshold_perc = N_THRESHOLD_PERC
     message:
         "calculating the percentage of aligned bases for {input}"
     conda:
@@ -148,10 +151,12 @@ rule calculate_alignment_percentage:
         "Rscript scripts/aligned_perc_calc.r "
         "--filename {input.coords} "
         "--fasta {input.fasta} "
-        "--out {output} "
         "--nfile {input.nfile} "
+        "--out {output} "
         "--length_threshold {params.length_threshold} "
         "--identity_threshold {params.identity_threshold} "
+#        "--n_threshold_abs {params.n_threshold_abs} "
+        "--n_threshold_perc {params.n_threshold_perc} "
 
 rule create_results_matrix:
     input:
