@@ -5,5 +5,5 @@ queries_dir: test/queries/ # fasta files that you want to align (e.g. scaffolds)
 refs_dir: test/refs/       # fasta files that you want to use as references (e.g. chromosomes)
 
 length_threshold: 100     # minimum length of alignment
-identity_threshold: 85.0   # minimum identity score of alignment
-n_threshold: 10    # cut off for N filtering
+identity_threshold: 85   # minimum identity score of alignment
+n_threshold_perc: 10.0 # maximum percentage of N in an alignment
