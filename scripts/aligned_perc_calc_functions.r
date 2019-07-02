@@ -31,7 +31,7 @@ get_filtered_data <- function(filename = "sortedSuper-Scaffold_1000002-H12.coord
     # filter based on length and identity score
     if (all(data$length_2 < length_threshold | data$`%_identity` < identity_threshold)){
       warning("No alignments passed filtering, returning 0% aligned bases. Consider choosing different filtering parameters.")
-      filtered_data <- cbind(rbind(rep(0,7)),ref_name = refname, query_name = queryname)
+      filtered_data <- as.data.frame(cbind(rbind(rep(0,7)),ref_name = refname, query_name = queryname), stringsAsFactors = FALSE)
     } else if (any(data$length_2 < length_threshold | data$`%_identity` < identity_threshold)){
       filtered_data <- data[-which(data$length_2 < length_threshold | data$`%_identity` < identity_threshold),]
     } else {
@@ -47,7 +47,7 @@ get_filtered_data <- function(filename = "sortedSuper-Scaffold_1000002-H12.coord
     }
   } else if (length(scan(filename, what = character(), skip = 5, quiet = T))==0){
     warning("file is empty, returning NA")
-    filtered_data <- cbind(rbind(rep(NA,7)),ref_name = refname, query_name = queryname)
+    filtered_data <- as.data.frame(cbind(rbind(rep(NA,7)),ref_name = refname, query_name = queryname), stringsAsFactors = FALSE)
     if (mode == 0){
       write.table(filtered_data, paste0("Temp/filtered",filename,".tsv"), row.names = F, sep = "\t")
     } else if (mode == 1){
@@ -71,8 +71,10 @@ merge_data <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.tsv",
     tbmerged <- data[,c(8,9,3,4,1,2,6,5,7)] # get everything but still use query formatting
   } else if (datatype == 4){
     tbmerged <- data[,c(8,9,1:7)] # get everything but still use ref formatting
+  } else if (datatype == 5){
+    tbmerged <- data[,-5]
   } else {
-    stop("datatype needs to be either 1,2,3, or 4")
+    stop("datatype needs to be either 1,2,3,4, or 5")
   }
   #print("merge step 0")
   # if (nrow(tbmerged)>0){
@@ -92,49 +94,57 @@ merge_data <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.tsv",
     tbmerged[,2] <- as.character(tbmerged[,2])
     tbmerged[,1] <- as.character(tbmerged[,1])
     while (T){
-      merged <- c()
+      merged <- data.frame()
       i <- 1
       while (i<(nrow(tbmerged))){ # for loop which we can quickly skip through
         next_one <- which(tbmerged[(i+1):nrow(tbmerged),3]<=(tbmerged[i,4]+maxgap))
         if(length(next_one)>0){ # if true then that means we have overlap
           tmp <- which(tbmerged[,4]==max(c(tbmerged[next_one+i,4],0)))[1]
-          merged <- rbind(merged,c(tbmerged[i,1],tbmerged[i,2],tbmerged[i,3],tbmerged[tmp,4]))
+          merged <- rbind(merged,cbind(tbmerged[i,1],tbmerged[i,2],tbmerged[i,3],tbmerged[tmp,4]), stringsAsFactors = FALSE)
           i <- i+max(next_one)+1 # skip to the next not-overlapping sequence
+          lastmerged <- TRUE
         } else { # this sequence is not overlapping with others
-          merged <- rbind(merged,c(tbmerged[i,1],tbmerged[i,2],tbmerged[i,3],tbmerged[i,4]))
+          merged <- rbind(merged,cbind(tbmerged[i,1],tbmerged[i,2],tbmerged[i,3],tbmerged[i,4]), stringsAsFactors = FALSE)
           i <- i+1
+          lastmerged <- FALSE
         }
       }
-      merged <- rbind(merged,c(tbmerged[nrow(tbmerged),1],tbmerged[nrow(tbmerged),2],tbmerged[nrow(tbmerged),3],tbmerged[nrow(tbmerged),4]))
+      if (!lastmerged){
+        merged <- rbind(merged,cbind(tbmerged[nrow(tbmerged),1],tbmerged[nrow(tbmerged),2],tbmerged[nrow(tbmerged),3],tbmerged[nrow(tbmerged),4]), stringsAsFactors = FALSE)
+      }
       merged <- as.data.frame(merged, stringsAsFactors = F)
       merged[,3] <- as.numeric(merged[,3])
       merged[,4] <- as.numeric(merged[,4])
-      if(nrow(tbmerged)==nrow(merged)){break}
+      if(nrow(tbmerged)==nrow(merged) | nrow(merged) == 1){break}
       tbmerged <- merged
     }
     
     #print("merge step 2")
-    if (maxgap2 > 0){
+    if (maxgap2 > 0 & nrow(merged) != 1){
       tbmerged <- merged
       while (T){
-        merged <- c()
+        merged <- data.frame()
         i <- 1
         while (i<(nrow(tbmerged))){ # for loop which we can quickly skip through
           next_one <- which(tbmerged[(i+1):nrow(tbmerged),3]<=(tbmerged[i,4]+(tbmerged[i,4]-tbmerged[i,3])*maxgap2))
           if(length(next_one)>0){ # if true then that means we have overlap
             tmp <- which(tbmerged[,4]==max(c(tbmerged[next_one+i,4],0)))[1]
-            merged <- rbind(merged,c(tbmerged[i,1],tbmerged[i,2],tbmerged[i,3],tbmerged[tmp,4]))
+            merged <- rbind(merged,cbind(tbmerged[i,1],tbmerged[i,2],tbmerged[i,3],tbmerged[tmp,4]), stringsAsFactors = FALSE)
             i <- i+max(next_one)+1 # skip to the next not-overlapping sequence
+            lastmerged <- TRUE
           } else { # this sequence is not overlapping with others
-            merged <- rbind(merged,c(tbmerged[i,1],tbmerged[i,2],tbmerged[i,3],tbmerged[i,4]))
+            merged <- rbind(merged,cbind(tbmerged[i,1],tbmerged[i,2],tbmerged[i,3],tbmerged[i,4]), stringsAsFactors = FALSE)
             i <- i+1
+            lastmerged <- FALSE
           }
         }
-        merged <- rbind(merged,c(tbmerged[nrow(tbmerged),1],tbmerged[nrow(tbmerged),2],tbmerged[nrow(tbmerged),3],tbmerged[nrow(tbmerged),4]))
+        if (!lastmerged){
+          merged <- rbind(merged,cbind(tbmerged[nrow(tbmerged),1],tbmerged[nrow(tbmerged),2],tbmerged[nrow(tbmerged),3],tbmerged[nrow(tbmerged),4]), stringsAsFactors = FALSE)
+        }
         merged <- as.data.frame(merged, stringsAsFactors = F)
         merged[,3] <- as.numeric(merged[,3])
         merged[,4] <- as.numeric(merged[,4])
-        if(nrow(tbmerged)==nrow(merged)){break}
+        if(nrow(tbmerged)==nrow(merged) | nrow(merged) == 1){break}
         tbmerged <- merged
       }
     }
@@ -148,8 +158,10 @@ merge_data <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.tsv",
       colnames(merged) <- c("ref_name","query_name","query_start","query_end","ref_start","ref_end",colnames(data)[c(6,5,7)]) # get everything but still use query formatting
     } else if (datatype == 4){
       colnames(merged) <- c("ref_name","query_name","ref_start","ref_end","query_start","query_end",colnames(data)[c(5,6,7)]) # get everything but still use ref formatting
+    } else if (datatype == 5){
+      colnames(merged) <- colnames(data[,-5])
     } else {
-      stop("datatype needs to be either 1,2,3, or 4")
+      stop("datatype needs to be either 1,2,3,4, or 5")
     }
     
   } else {stop("Data must be either NA or a numeric value >= 0")}

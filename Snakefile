@@ -92,7 +92,7 @@ rule get_N_locations:
     input:
         QUERIES_DIR + "{query}.fasta"
     output:
-        temp(TEMP_DIR + "query_N/{query}.txt")
+        TEMP_DIR + "query_N/{query}.txt"
 #    params:
 #        n_threshold = N_THRESHOLD
     message:
@@ -123,7 +123,7 @@ rule sort_coords:
     input:
         TEMP_DIR + "coords/{query}_vs_{ref}.coords"
     output:
-        temp(TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords")
+        TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords"
     message:
         "sorting {input} file by coordinates"
 #    threads: 20
