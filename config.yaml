@@ -1,9 +1,9 @@
-tempdir: scratch/SSvsHeinz/    # files will be deleted upon pipeline completion
-resultdir: results/SSvsHeinz/   # output files that you want to keep
+tempdir: scratch/    # files will be deleted upon pipeline completion
+resultdir: results/   # output files that you want to keep
 
-queries_dir: SSvsHeinz/queries/ # fasta files that you want to align (e.g. scaffolds)
-refs_dir: SSvsHeinz/refs/       # fasta files that you want to use as references (e.g. chromosomes)
+queries_dir: test/queries/ # fasta files that you want to align (e.g. scaffolds)
+refs_dir: test/refs/       # fasta files that you want to use as references (e.g. chromosomes)
 
-length_threshold: 1000     # minimum length of alignment
+length_threshold: 100     # minimum length of alignment
 identity_threshold: 85   # minimum identity score of alignment
 n_threshold_perc: 10.0 # maximum percentage of N in an alignment
