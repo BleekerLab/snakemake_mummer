@@ -8,3 +8,6 @@ scratch/
 *.Rhistory
 SSvsHeinz/
 backup/
+filter_snakemake.sh
+PI127826/
+*.old
