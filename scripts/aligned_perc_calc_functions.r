@@ -85,10 +85,12 @@ merge_data <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.tsv",
   #print(head(tbmerged))
   
 
-  #print("merge step 1")
+  print("merge step 1")
   if (all(is.na(tbmerged)[3:4])){
     merged <- tbmerged
   } else if (all((tbmerged == 0)[3:4])){
+    merged <- tbmerged
+  } else if (nrow(tbmerged)==1){
     merged <- tbmerged
   } else if (all(tbmerged[1,3:4] > 0)){
     tbmerged[,2] <- as.character(tbmerged[,2])
@@ -99,10 +101,14 @@ merge_data <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.tsv",
       while (i<(nrow(tbmerged))){ # for loop which we can quickly skip through
         next_one <- which(tbmerged[(i+1):nrow(tbmerged),3]<=(tbmerged[i,4]+maxgap))
         if(length(next_one)>0){ # if true then that means we have overlap
-          tmp <- which(tbmerged[,4]==max(c(tbmerged[next_one+i,4],0)))[1]
+          tmp <- which(tbmerged[,4]==max(c(tbmerged[next_one+i,4],tbmerged[i,4])))[1]
           merged <- rbind(merged,cbind(tbmerged[i,1],tbmerged[i,2],tbmerged[i,3],tbmerged[tmp,4]), stringsAsFactors = FALSE)
           i <- i+max(next_one)+1 # skip to the next not-overlapping sequence
-          lastmerged <- TRUE
+          if (i==(nrow(tbmerged))){
+            lastmerged <- FALSE
+          } else {
+            lastmerged <- TRUE
+          }
         } else { # this sequence is not overlapping with others
           merged <- rbind(merged,cbind(tbmerged[i,1],tbmerged[i,2],tbmerged[i,3],tbmerged[i,4]), stringsAsFactors = FALSE)
           i <- i+1
@@ -119,7 +125,7 @@ merge_data <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.tsv",
       tbmerged <- merged
     }
     
-    #print("merge step 2")
+    print("merge step 2")
     if (maxgap2 > 0 & nrow(merged) != 1){
       tbmerged <- merged
       while (T){
@@ -128,10 +134,14 @@ merge_data <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.tsv",
         while (i<(nrow(tbmerged))){ # for loop which we can quickly skip through
           next_one <- which(tbmerged[(i+1):nrow(tbmerged),3]<=(tbmerged[i,4]+(tbmerged[i,4]-tbmerged[i,3])*maxgap2))
           if(length(next_one)>0){ # if true then that means we have overlap
-            tmp <- which(tbmerged[,4]==max(c(tbmerged[next_one+i,4],0)))[1]
+            tmp <- which(tbmerged[,4]==max(c(tbmerged[next_one+i,4],tbmerged[i,4])))[1]
             merged <- rbind(merged,cbind(tbmerged[i,1],tbmerged[i,2],tbmerged[i,3],tbmerged[tmp,4]), stringsAsFactors = FALSE)
             i <- i+max(next_one)+1 # skip to the next not-overlapping sequence
-            lastmerged <- TRUE
+            if (i==(nrow(tbmerged))){
+              lastmerged <- FALSE
+            } else {
+              lastmerged <- TRUE
+            }
           } else { # this sequence is not overlapping with others
             merged <- rbind(merged,cbind(tbmerged[i,1],tbmerged[i,2],tbmerged[i,3],tbmerged[i,4]), stringsAsFactors = FALSE)
             i <- i+1
@@ -173,7 +183,7 @@ merge_data <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.tsv",
 }
 
 # calculate the percentage of aligned bases
-get_aligned_perc <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.NR.tsv", fastafile = "Super-Scaffold_1000002.fasta", mode = 0, data = merged, out = opt$out){
+get_aligned_perc <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.NR.tsv", fastafile = "Super-Scaffold_1000001.fasta", mode = 0, data = merged, out = opt$out){
   if (mode == 0){
     data <- read.table(filename, sep = "\t", header = T, stringsAsFactors = F)
   }
@@ -232,6 +242,11 @@ filter_N_entries <- function(data = merged, N_file = opt$nfile, N_threshold_perc
     } else {
       N_filtered_data <- data[-N_containing_rows,]
     }
+  }
+  
+  if (nrow(N_filtered_data)==0){
+    warning("No alignments passed N_filtering, returning 0% aligned bases. Consider choosing different filtering parameters.")
+    N_filtered_data <- as.data.frame(cbind(rbind(rep(0,7)), ref_name = data$ref_name[1], query_name = data$query_name[1]), stringsAsFactors = FALSE)
   }
   return(N_filtered_data)
   

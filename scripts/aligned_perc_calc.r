@@ -22,15 +22,14 @@ source("scripts/aligned_perc_calc_functions.r")
 
 mode <- 1 # mode 1 is wrapper mode, 0 is standalone mode
 # remake of aligned_perc_calc.py
-oldtime <- Sys.time() # test speed of script
-coords_files <- opt$filename
-for (i in coords_files){
-  filtered_data <- get_filtered_data(filename = i,
-                                     length_threshold = opt$length_threshold,
-                                     identity_threshold = opt$identity_threshold,
-                                     mode = 1) # filter the data
-  merged <- merge_data(filename = gsub(".coords",".tsv",gsub("sorted","Temp/filtered",i)),mode = 1, data = filtered_data) # remove redundant sequences and merge overlapping sequences
-  N_filtered_data <- filter_N_entries(data = merged, N_file = opt$nfile, N_threshold_perc = opt$n_threshold_perc)
-  get_aligned_perc(filename = gsub(".coords",".NR.tsv",gsub("sorted","Temp/filtered",i)),mode = 1, data = merged, fastafile = opt$fasta, out = opt$out) # calculate the percentage of aligned bases
-}
+#oldtime <- Sys.time() # test speed of script
+coords_file <- opt$filename
+filtered_data <- get_filtered_data(filename = coords_file,
+                                   length_threshold = opt$length_threshold,
+                                   identity_threshold = opt$identity_threshold,
+                                   mode = 1) # filter the data
+N_filtered_data <- filter_N_entries(data = filtered_data, N_file = opt$nfile, N_threshold_perc = opt$n_threshold_perc)
+merged <- merge_data(filename = gsub(".coords",".tsv",gsub("sorted","Temp/filtered",i)),mode = 1, data = N_filtered_data) # remove redundant sequences and merge overlapping sequences
+get_aligned_perc(filename = gsub(".coords",".NR.tsv",gsub("sorted","Temp/filtered",i)),mode = 1, data = merged, fastafile = opt$fasta, out = opt$out) # calculate the percentage of aligned bases
+
 #print(Sys.time()-oldtime)
