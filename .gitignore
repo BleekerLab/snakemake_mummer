@@ -11,3 +11,4 @@ backup/
 filter_snakemake.sh
 PI127826/
 *.old
+scripts/postprocessing*

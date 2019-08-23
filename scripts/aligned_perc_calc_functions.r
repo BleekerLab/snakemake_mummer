@@ -1,6 +1,8 @@
 # This file contains all the functions to get from a sorted coords file to a matrix with all percentages of aligned bases
+# The functions in this file are used by filter_data.r and ref-query_matching.r
 
 # Get all relevant coords files filenames
+# No longer used!
 get_coords_files <- function(keyphrase = "sortedSuper"){
   coords_files <- list.files("~/Wicher_comparitive_genomics/02SS_alignments_nucmer/Input")
   coords_files <- coords_files[which(grepl(keyphrase,coords_files))] # Only superscaffold results
@@ -8,7 +10,7 @@ get_coords_files <- function(keyphrase = "sortedSuper"){
 }
 
 # Reads the sorted coords file, fixes its formatting and performs the filter step
-get_filtered_data <- function(filename = "sortedSuper-Scaffold_1000002-H12.coords", length_threshold = opt$length_threshold, identity_threshold = opt$identity_threshold, mode = 0){
+get_filtered_data <- function(filename = "sortedSuper-Scaffold_1000002-H12.coords", length_threshold = opt$length_threshold, identity_threshold = opt$identity_threshold, mode = 1){
   if (!is.numeric(length_threshold)){stop("length_threshold needs to be a number")}
   if (!is.numeric(identity_threshold)){stop("identity_threshold needs to be a number")}
   if (identity_threshold>100 | identity_threshold<0){stop("identity_threshold needs to be a value between 0 and 100")}
@@ -18,6 +20,8 @@ get_filtered_data <- function(filename = "sortedSuper-Scaffold_1000002-H12.coord
   refname <- substr(filename,regexpr("_vs_",filename)+nchar("_vs_"),regexpr(".sorted",filename)-1)
 
   # Read and fix the table layout 
+  # The .coords files contain 5 leading rows before the actual table starts, so we use skip = 5 to skip these and avoid formatting issues.
+  # If, after skipping 5 rows we're left with an empty file then we have no alignments, most likely caused by too strict alignment parameters in nucmer.
   if (length(scan(filename, what = character(), skip = 5, quiet = T))>0){
     data <- read.table(filename, sep = "", skip = 5)
     data <- data[,-which(data[1,]=="|")]
@@ -58,8 +62,62 @@ get_filtered_data <- function(filename = "sortedSuper-Scaffold_1000002-H12.coord
   }
 }
 
+# filter the alignments that contain Ns
+filter_N_entries <- function(data = filtered_data, N_file = opt$nfile, N_threshold_perc = opt$n_threshold_perc, mode = 1, outname = opt$out){
+  tmp <- read.table(N_file, sep="\t", header = T)
+  if (nrow(tmp)==0){ #empty tmp file means there are no N nucleotides in the sequence
+    N_filtered_data <- data
+  } else if (all(is.na(tmp)[1:3])){ #don't know how this can happen but it apparently can so yeah... needed to have a fix for that too
+    N_filtered_data <- data
+  } else { #not empty, not messed up, lets roll
+    N_containing_rows <- c()
+    for (i in 1:nrow(data)){
+      N_amount <- 0
+      # check if there is any overlap between the alignment and the sequences of N nucleotides in the sequence(N-sequence).
+      # This looks complex but really it ain't.
+      if (any(tmp[,1]>=data[i,3] & tmp[,1]<=data[i,4]) #does the beginning of any of the N-sequence fall within the alignment
+           | any(tmp[,2]>=data[i,3] & tmp[,2]<=data[i,4])){ #does the end of any of the N-sequence fall within the alignment
+        for (j in which((tmp[,1]>=data[i,3] & tmp[,1]<=data[i,4]) | (tmp[,2]>=data[i,3] & tmp[,2]<=data[i,4]))){
+          if (tmp[j,1]>=data[i,3] & tmp[j,2]<=data[i,4]){ #the entirety of the N-sequence falls within the alignment
+            N_amount <- N_amount + tmp[j,3] #add the length of the N-sequence to the N_amount for the current alignment
+          } else if (tmp[j,1]<data[i,3] & tmp[j,2]<=data[i,4]){ #the beginning of the N-sequence is outside the alignment but the end is within
+            N_amount <- N_amount + tmp[j,2]-data[i,3] #only add the piece that falls within the alignment to N_amount
+          } else if (tmp[j,1]>=data[i,3] & tmp[j,2]>data[i,4]){ #the beginning of the N-sequence is within the alignment but the end is outside
+            N_amount <- N_amount + data[i,4]-tmp[j,1] #only add the piece that falls within the alignment to N_amount
+          }
+        }
+        
+        # Check if the % of N nucleotides exceeds the threshold value
+        if (100*N_amount/(data[i,4]-data[i,3]) > N_threshold_perc){
+          N_containing_rows <- c(N_containing_rows,i)
+        }
+      } else if (any(tmp[,1]<data[i,3] & tmp[,2]>data[i,4])){
+        N_containing_rows <- c(N_containing_rows,i)
+      }
+    }
+    
+    # Filter out the alignments that contained too much N
+    if (is.null(N_containing_rows)){
+      N_filtered_data <- data
+    } else {
+      N_filtered_data <- data[-N_containing_rows,]
+    }
+  }
+  
+  if (nrow(N_filtered_data)==0){
+    warning("No alignments passed N_filtering, returning 0% aligned bases. Consider choosing different filtering parameters.")
+    N_filtered_data <- as.data.frame(cbind(rbind(rep(0,7)), ref_name = data$ref_name[1], query_name = data$query_name[1]), stringsAsFactors = FALSE)
+  }
+  if (mode == 0){
+    write.table(N_filtered_data, outname, row.names = F, sep = "\t")
+  } else {
+    return(N_filtered_data)
+  }
+}
+
 # merge data
-merge_data <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.tsv",mode = 0, data = filtered_data, maxgap = 0, datatype = 1, maxgap2 = 0){
+# Should be replaced by bedtools
+merge_data <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.tsv",mode = 1, data = filtered_data, maxgap = 0, datatype = 1, maxgap2 = 0){
   if (mode == 0){
     data <- read.table(filename, sep = "\t", header = T)
   }
@@ -76,16 +134,9 @@ merge_data <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.tsv",
   } else {
     stop("datatype needs to be either 1,2,3,4, or 5")
   }
-  #print("merge step 0")
-  # if (nrow(tbmerged)>0){
-  #   tbmerged <- tbmerged[order(tbmerged[,3]),]
-  # } else {
-  #   tbmerged <- cbind(0,0,0,0)
-  # }
-  #print(head(tbmerged))
   
 
-  print("merge step 1")
+  #print("merge step 1")
   if (all(is.na(tbmerged)[3:4])){
     merged <- tbmerged
   } else if (all((tbmerged == 0)[3:4])){
@@ -125,7 +176,7 @@ merge_data <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.tsv",
       tbmerged <- merged
     }
     
-    print("merge step 2")
+    #print("merge step 2")
     if (maxgap2 > 0 & nrow(merged) != 1){
       tbmerged <- merged
       while (T){
@@ -183,7 +234,8 @@ merge_data <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.tsv",
 }
 
 # calculate the percentage of aligned bases
-get_aligned_perc <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.NR.tsv", fastafile = "Super-Scaffold_1000001.fasta", mode = 0, data = merged, out = opt$out){
+# if merge gets replaced by bed tools then this would best be performed in the same script as merge, which would best be made in python
+get_aligned_perc <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12.NR.tsv", fastafile = "Super-Scaffold_1000001.fasta", mode = 1, data = merged, out = opt$out){
   if (mode == 0){
     data <- read.table(filename, sep = "\t", header = T, stringsAsFactors = F)
   }
@@ -197,77 +249,13 @@ get_aligned_perc <- function(filename = "Temp/filteredSuper-Scaffold_1000002-H12
                           aligned_perc = 0)
   } else if (all(data[1,3:4] > 0)){
     data <- cbind(data,length = (data[,4]-data[,3])) # calculate length
-    #  print(data)
-    #  print(opt$filename)
     SS_seq <- readDNAStringSet(fastafile)
-    #totalN <- length(unlist(gregexpr("N",SS_seq)))
+    
+    #print(data)
     aligned_perc <- cbind(ref_name = data$ref_name[1],
                           query_name = data$query_name[1],
                           aligned_perc = sum(data$length)/(nchar(SS_seq))*100) # length divided by total SS length *100 is % aligned bases
+    #print(aligned_perc)
   } else {stop("Data must be either NA or a numeric value >= 0")}
   write.table(aligned_perc, out, sep = "\t", row.names = FALSE)
-}
-
-# filter the alignments that contain Ns
-filter_N_entries <- function(data = merged, N_file = opt$nfile, N_threshold_perc = 10){
-  tmp <- read.table(N_file, sep="\t", header = T)
-  if (nrow(tmp)==0){
-    N_filtered_data <- data
-  } else if (all(is.na(tmp)[1:3])){
-    N_filtered_data <- data
-  } else {
-    N_containing_rows <- c()
-    for (i in 1:nrow(data)){
-      N_amount <- 0
-      if (any(tmp[,1]>=data[i,3] & tmp[,1]<=data[i,4]) | any(tmp[,2]>=data[i,3] & tmp[,2]<=data[i,4])){
-        for (j in which((tmp[,1]>=data[i,3] & tmp[,1]<=data[i,4]) | (tmp[,2]>=data[i,3] & tmp[,2]<=data[i,4]))){
-          if (tmp[j,1]>=data[i,3] & tmp[j,2]<=data[i,4]){
-            N_amount <- N_amount + tmp[j,3]
-          } else if (tmp[j,1]<data[i,3] & tmp[j,2]<=data[i,4]){
-            N_amount <- N_amount + tmp[j,2]-data[i,3]
-          } else if (tmp[j,1]>=data[i,3] & tmp[j,2]>data[i,4]){
-            N_amount <- N_amount + data[i,4]-tmp[j,1]
-          }
-        }
-        
-        if (100*N_amount/(data[i,4]-data[i,3]) > N_threshold_perc){
-          N_containing_rows <- c(N_containing_rows,i)
-        }
-      } else if (any(tmp[,1]<data[i,3] & tmp[,2]>data[i,4])){
-        N_containing_rows <- c(N_containing_rows,i)
-      }
-    }
-    if (is.null(N_containing_rows)){
-      N_filtered_data <- data
-    } else {
-      N_filtered_data <- data[-N_containing_rows,]
-    }
-  }
-  
-  if (nrow(N_filtered_data)==0){
-    warning("No alignments passed N_filtering, returning 0% aligned bases. Consider choosing different filtering parameters.")
-    N_filtered_data <- as.data.frame(cbind(rbind(rep(0,7)), ref_name = data$ref_name[1], query_name = data$query_name[1]), stringsAsFactors = FALSE)
-  }
-  return(N_filtered_data)
-  
-  # print(paste0(nrow(data), " rows before N filter"))
-  # my_seq <- readDNAStringSet(fastafile)
-  # N_containing_rows <- c()
-  # ding <- unlist(gregexpr("N", my_seq))
-  # oldtime <- Sys.time()
-  # for (i in 1:nrow(data)){
-  #   N_locations <- length(ding[which(ding >= data[i,3] & ding <= data[i,4])])
-  #   if ((N_locations/(data[i,4]-data[i,3]))*100 > N_threshold_perc){
-  #     N_containing_rows <- c(N_containing_rows, i)
-  #   }
-  # }
-  # print(Sys.time()-oldtime)
-  # 
-  # if (is.null(N_containing_rows)){
-  #   N_filtered_data <- data
-  # } else {
-  #   N_filtered_data <- data[-N_containing_rows,]
-  # }
-  # print(paste0(nrow(N_filtered_data)," rows after N filter"))
-  # return(N_filtered_data)
 }
