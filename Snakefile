@@ -63,7 +63,7 @@ rule all:
     input:
 #        expand(RESULT_DIR + "{query}_vs_{ref}.sorted.coords",query=QUERIES,ref=REFS),
         expand(RESULT_DIR + "{ref}.txt", ref=REFS),
-        RESULT_DIR + "results.tsv"
+        RESULT_DIR + "results_" + str(LENGTH_THRESHOLD) + "_" + str(IDENTITY_THRESHOLD) + "_" + str(N_THRESHOLD_PERC) + ".tsv"
     message:"all done"
 
 
@@ -216,7 +216,7 @@ rule create_results_matrix2:
     input:
         expand(RESULT_DIR + "{ref}.txt", ref=REFS)
     output:
-        RESULT_DIR + "results.tsv"
+        RESULT_DIR + "results_" + str(LENGTH_THRESHOLD) + "_" + str(IDENTITY_THRESHOLD) + "_" + str(N_THRESHOLD_PERC) + ".tsv"
     message:
         "final step in creating final results.tsv file"
     conda:
