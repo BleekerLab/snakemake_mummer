@@ -12,3 +12,6 @@ filter_snakemake.sh
 PI127826/
 *.old
 scripts/postprocessing*
+ROI_finder/Input/Filtered/*
+ROI_finder/Input/Query_fastas/*
+ROI_finder/Input/Ref_fastas/*
