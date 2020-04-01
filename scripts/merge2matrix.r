@@ -17,12 +17,18 @@ merge2matrix <- function(data = opt$filename, outfile = opt$out){
   for (i in data){
     aligned_perc_matrix <- rbind(aligned_perc_matrix,read.table(i, header = T, sep = "\t", stringsAsFactors = F))
   }
+  tmp_colname <- aligned_perc_matrix[1,1]
 
   #print(aligned_perc_matrix)
   aligned_perc_matrix <- spread(as.data.frame(aligned_perc_matrix),"ref_name","aligned_perc") # spread out the data based on the chr number
-  rownames(aligned_perc_matrix) <- aligned_perc_matrix[,1] # set column containing names as rownames
+  tmp_names <- aligned_perc_matrix[,1] # set column containing names as rownames
   aligned_perc_matrix <- aligned_perc_matrix[,-1] # remove column containing names
-  aligned_perc_matrix <- aligned_perc_matrix[,order(colnames(aligned_perc_matrix))] # order the columns
+  if(length(data)>1){
+    aligned_perc_matrix <- aligned_perc_matrix[,order(colnames(aligned_perc_matrix))] # order the columns
+  } else {
+    aligned_perc_matrix <- as.data.frame(aligned_perc_matrix, row.names = tmp_names, stringsAsFactors = False)
+    colnames(aligned_perc_matrix) <- tmp_colname
+  }
   write.table(aligned_perc_matrix,outfile,sep = "\t",quote=F) # write as .tsv for use in future scripts
   #return(aligned_perc_matrix)
 }
