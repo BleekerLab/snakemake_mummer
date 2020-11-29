@@ -14,47 +14,41 @@ opt <- parser$parse_args()
 # Get the locations on the DNA sequence that contain Ns
 get_N_locations <- function(fastafile = opt$fasta, N_threshold = opt$n_threshold){
   my_seq <- readDNAStringSet(fastafile) 
-  N_locations <- unlist(gregexpr("N",my_seq)) # Holy shit that are a lot of N, over 21% of the entire sequence
+  N_locations <- unlist(gregexpr("N",my_seq))
   if (N_locations[1] < 0){
-    #print(paste0("A UNICORN! ",names(my_seq)," has NO N nucleotides!"))
-    longasslist <- cbind(start = NA, end = NA, length = NA)
+    list_of_n_sequences <- cbind(start = NA, end = NA, length = NA)
   } else {
-    seq_mode <- 0
-    longasslist <- c()
+    sequence_mode <- F # is true while we're looking for a sequence of Ns instead of a single N
+    list_of_n_sequences <- c()
     for (i in 1:(length(N_locations)-1)){
       if(N_locations[i]+1==N_locations[i+1]){
-        if(seq_mode!=1){
+        if(!sequence_mode){
           mystart <- N_locations[i]
-          seq_mode <- 1
-        } else {
-          #go on till you find the end
+          sequence_mode <- T
         }
       } else {
-        if(seq_mode==1){
+        if(sequence_mode){
           myend <- N_locations[i]
-          longasslist <- rbind(longasslist,c(start = mystart, end = myend)) # yay found a whole sequence
-          seq_mode <- 2
+          list_of_n_sequences <- rbind(list_of_n_sequences,c(start = mystart, end = myend)) # found a whole sequence of Ns
+          sequence_mode <- F
         } else {
-          longasslist <- rbind(longasslist,c(start = N_locations[i], end = N_locations[i])) # loner
-          seq_mode <- 2
+          list_of_n_sequences <- rbind(list_of_n_sequences,c(start = N_locations[i], end = N_locations[i])) # found a single N
+          sequence_mode <- F
         }
       } 
     }
-    if(seq_mode == 1){
-      longasslist <- rbind(longasslist,c(start = mystart, end = N_locations[i+1]))
+    if(sequence_mode){
+      list_of_n_sequences <- rbind(list_of_n_sequences,c(start = mystart, end = N_locations[i+1]))
     }
-    longasslist <- cbind(longasslist, length = longasslist[,2]-longasslist[,1]+1)
-    #print(paste0(round(sum(longasslist[,3])/nchar(my_seq)*100,3),"% of ",names(my_seq)," is N"))
-    #print(paste0(round(sum(longasslist[which(longasslist[,3]>=1000),3])/nchar(my_seq)*100,3),"% of ",names(my_seq)," is sequences of 1000 or more consecutive Ns")) #Still over 21%
-    #write.table(longasslist, paste0(names(my_seq),"_N.tsv"))
+    list_of_n_sequences <- cbind(list_of_n_sequences, length = list_of_n_sequences[,2]-list_of_n_sequences[,1]+1)
     if (N_threshold>0){
-      longasslist <- longasslist[-which(longasslist[,3]<N_threshold),]
+      list_of_n_sequences <- list_of_n_sequences[-which(list_of_n_sequences[,3]<N_threshold),]
     }
-    if (length(dim(longasslist))!=2){
-      longasslist <- cbind(start = longasslist[1], end = longasslist[2], length = longasslist[3])
+    if (length(dim(list_of_n_sequences))!=2){
+      list_of_n_sequences <- cbind(start = list_of_n_sequences[1], end = list_of_n_sequences[2], length = list_of_n_sequences[3])
     }
   }
-  return(longasslist)
+  return(list_of_n_sequences)
 }
 
 tmp <- get_N_locations(fastafile = opt$fasta)

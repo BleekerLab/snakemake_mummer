@@ -1,6 +1,5 @@
 # Final step in getting the matrix of aligned bases
 
-#print("does it even start?")
 # Load packages
 suppressPackageStartupMessages(library(tidyr))
 suppressPackageStartupMessages(library(argparse))
@@ -19,7 +18,6 @@ merge2matrix <- function(data = opt$filename, outfile = opt$out){
   }
   tmp_colname <- aligned_perc_matrix[1,1]
 
-  #print(aligned_perc_matrix)
   aligned_perc_matrix <- spread(as.data.frame(aligned_perc_matrix),"ref_name","aligned_perc") # spread out the data based on the chr number
   tmp_names <- aligned_perc_matrix[,1] # set column containing names as rownames
   aligned_perc_matrix <- aligned_perc_matrix[,-1] # remove column containing names
@@ -30,7 +28,6 @@ merge2matrix <- function(data = opt$filename, outfile = opt$out){
     colnames(aligned_perc_matrix) <- tmp_colname
   }
   write.table(aligned_perc_matrix,outfile,sep = "\t",quote=F) # write as .tsv for use in future scripts
-  #return(aligned_perc_matrix)
 }
 
 merge2matrix(data = opt$filename, outfile = opt$out)

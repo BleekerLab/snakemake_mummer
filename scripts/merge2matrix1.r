@@ -1,4 +1,5 @@
 # First step in getting the matrix of aligned bases. Merging inputs from the queries
+# These steps need to be split, see (closed) issue #6 on the repo
 
 suppressPackageStartupMessages(library(tidyr))
 suppressPackageStartupMessages(library(argparse))
