@@ -81,7 +81,6 @@ rule nucmer:
         "Starting nucmer alignment with {wildcards.query} on {wildcards.ref}"
     conda:
         "envs/mummer.yaml"
-#    threads: 20
     params:
         query = "{query}",
         ref = "{ref}",
@@ -94,8 +93,6 @@ rule get_N_locations:
         QUERIES_DIR + "{query}.fasta"
     output:
         TEMP_DIR + "query_N/{query}.txt"
-#    params:
-#        n_threshold = N_THRESHOLD
     message:
         "Starting N location acquirement for {wildcards.query}"
     conda:
@@ -105,7 +102,6 @@ rule get_N_locations:
         "scripts/get_N_locations.r "
         "--fasta {input} "
         "--out {output} "
-#        "--n_threshold {params.n_threshold} "
 
 rule delta_to_coords:
     input:
@@ -116,7 +112,6 @@ rule delta_to_coords:
         "converting {input} format to the coords format"
     conda:
         "envs/mummer.yaml"
-#    threads: 20
     shell:
         "show-coords -r {input} > {output}"
 
@@ -127,7 +122,6 @@ rule sort_coords:
         TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords"
     message:
         "sorting {input} file by coordinates"
-#    threads: 20
     shell:
         "sort  -n -k4 {input} > {output}"
 
@@ -169,34 +163,6 @@ rule ref_query_matching:
         "--filename {input.filtered} "
         "--fasta {input.fasta} "
         "--out {output} "
-
-#rule calculate_alignment_percentage:
-#    input:
-#        lambda wildcards: [RESULT_DIR + "coords/{wildcards.query}_vs_{wildcards.ref}.sorted.coords"]
-#        coords = TEMP_DIR + "coords/{query}_vs_{ref}.sorted.coords",
-#        fasta = QUERIES_DIR + "{query}.fasta",
-#        nfile = TEMP_DIR + "query_N/{query}.txt"
-#    output:
-#        temp(TEMP_DIR + "{query}_vs_{ref}.txt")
-#    params:
-#        length_threshold = LENGTH_THRESHOLD,
-#        identity_threshold = IDENTITY_THRESHOLD,
-#        n_threshold_abs = N_THRESHOLD_ABS,
-#        n_threshold_perc = N_THRESHOLD_PERC
-#    message:
-#        "calculating the percentage of aligned bases for {input}"
-#    conda:
-#        "envs/percentage.yaml"
-#    shell:
-#        "Rscript scripts/aligned_perc_calc.r "
-#        "--filename {input.coords} "
-#        "--fasta {input.fasta} "
-#        "--nfile {input.nfile} "
-#        "--out {output} "
-#        "--length_threshold {params.length_threshold} "
-#        "--identity_threshold {params.identity_threshold} "
-#        "--n_threshold_abs {params.n_threshold_abs} "
-#        "--n_threshold_perc {params.n_threshold_perc} "
 
 rule create_results_matrix1:
     input:
